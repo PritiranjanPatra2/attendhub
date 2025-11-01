@@ -1,7 +1,7 @@
 // routes/attendanceRoutes.js
 import express from 'express';
 import { isAuth } from '../controllers/authController.js';
-import { markAttendance } from '../controllers/attendanceController.js';
+import { markAttendance,getMyAttendance } from '../controllers/attendanceController.js';
 
 const router = express.Router();
 
