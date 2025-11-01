@@ -7,5 +7,6 @@ const router = express.Router();
 
 router.use(isAuth);
 router.post('/mark', markAttendance); // POST /api/attendance/mark
+router.get('/me', getMyAttendance);
 
 export default router;
