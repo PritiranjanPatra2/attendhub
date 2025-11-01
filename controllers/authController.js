@@ -214,29 +214,6 @@ export const updateStatus = async (req, res) => {
 };
 
 // CHECK-IN (Geolocation-based)
-const calculateDistance = (
-    currentLongitude,currentLatitude
-  )  => {
-    const lat2 = OFFICE_LAT;
-    const lon2 = OFFICE_LNG;
-    const lat1 = currentLatitude;
-    const lon1 = currentLongitude;
-      
-
-    const R = 6371000;
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
-
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const distance = R * c; 
-  };
 export const checkIn = async (req, res) => {
   try {
     console.log(req.body);
@@ -249,7 +226,11 @@ export const checkIn = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Location required' });
     }
 
-    const distance = calculateDistance( latitude, longitude) ;
+    const distance = getDistance(
+      { latitude, longitude },
+      { latitude: OFFICE_LAT, longitude: OFFICE_LNG }
+    );
+
     const inOffice = distance <= OFFICE_RADIUS;
     const status = inOffice ? 'In Office' : 'Out of Office';
 
