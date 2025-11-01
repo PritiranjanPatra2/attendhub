@@ -213,14 +213,10 @@ export const updateStatus = async (req, res) => {
   }
 };
 
-// CHECK-IN (Geolocation-based)
+// CHECK-IN (Geolocation-based) - Prevent Multiple Check-ins
 export const checkIn = async (req, res) => {
   try {
-    console.log(req.body);
-    
     const { latitude, longitude } = req.body;
-    console.log(latitude,longitude);
-    
 
     if (!latitude || !longitude) {
       return res.status(400).json({ success: false, message: 'Location required' });
@@ -230,21 +226,38 @@ export const checkIn = async (req, res) => {
       { latitude, longitude },
       { latitude: OFFICE_LAT, longitude: OFFICE_LNG }
     );
-
     const inOffice = distance <= OFFICE_RADIUS;
     const status = inOffice ? 'In Office' : 'Out of Office';
 
-    // Update user status
-    await User.findByIdAndUpdate(req.user._id, {
-      status,
-      statusUpdatedAt: Date.now(),
+    // Define today's date range
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    // Check if already checked in today
+    const existingAttendance = await Attendance.findOne({
+      user: req.user._id,
+      date: { $gte: today, $lt: tomorrow },
+      checkInTime: { $ne: null } // ensures check-in happened
     });
 
-    // Record attendance
-    const today = new Date().setHours(0, 0, 0, 0);
+    if (existingAttendance) {
+      return res.status(400).json({
+        success: false,
+        message: 'Already checked in today',
+        data: {
+          checkInTime: existingAttendance.checkInTime,
+          status: existingAttendance.status,
+          inOffice: existingAttendance.inOffice,
+        }
+      });
+    }
+
+    // Proceed with check-in
     let attendance = await Attendance.findOne({
       user: req.user._id,
-      date: { $gte: today, $lt: new Date(today + 24 * 60 * 60 * 1000) },
+      date: { $gte: today, $lt: tomorrow },
     });
 
     if (!attendance) {
@@ -257,6 +270,7 @@ export const checkIn = async (req, res) => {
         status,
       });
     } else {
+      // In case record exists but no check-in (edge case), allow update
       attendance.checkInTime = new Date();
       attendance.location = { latitude, longitude };
       attendance.inOffice = inOffice;
@@ -265,9 +279,15 @@ export const checkIn = async (req, res) => {
 
     await attendance.save();
 
+    // Update user status
+    await User.findByIdAndUpdate(req.user._id, {
+      status,
+      statusUpdatedAt: Date.now(),
+    });
+
     res.status(200).json({
       success: true,
-      message: 'Checked in',
+      message: 'Checked in successfully',
       data: {
         status,
         inOffice,
@@ -276,11 +296,10 @@ export const checkIn = async (req, res) => {
       },
     });
   } catch (error) {
+    console.error('Check-in error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
-};
-
-// CHECK-OUT
+};// CHECK-OUT
 export const checkOut = async (req, res) => {
   try {
     const today = new Date().setHours(0, 0, 0, 0);
