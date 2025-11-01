@@ -219,20 +219,7 @@ export const checkIn = async (req, res) => {
     console.log(req.body);
     
     const { latitude, longitude } = req.body;
-    console.log(latitude,longitude);
-    
-
-    if (!latitude || !longitude) {
-      return res.status(400).json({ success: false, message: 'Location required' });
-    }
-
-    const distance = getDistance(
-      { latitude, longitude },
-      { latitude: OFFICE_LAT, longitude: OFFICE_LNG }
-    );
-
-    const inOffice = distance <= OFFICE_RADIUS;
-    const status = inOffice ? 'In Office' : 'Out of Office';
+    const status = 'In Office';
 
     // Update user status
     await User.findByIdAndUpdate(req.user._id, {
