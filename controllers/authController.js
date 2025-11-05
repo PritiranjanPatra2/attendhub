@@ -214,123 +214,123 @@ export const updateStatus = async (req, res) => {
 };
 
 // CHECK-IN (Geolocation-based) - Prevent Multiple Check-ins
-export const checkIn = async (req, res) => {
-  try {
-    const { latitude, longitude } = req.body;
+// export const checkIn = async (req, res) => {
+//   try {
+//     const { latitude, longitude } = req.body;
 
-    if (!latitude || !longitude) {
-      return res.status(400).json({ success: false, message: 'Location required' });
-    }
+//     if (!latitude || !longitude) {
+//       return res.status(400).json({ success: false, message: 'Location required' });
+//     }
 
-    const distance = getDistance(
-      { latitude, longitude },
-      { latitude: OFFICE_LAT, longitude: OFFICE_LNG }
-    );
-    const inOffice = distance <= OFFICE_RADIUS;
-    const status = inOffice ? 'In Office' : 'Out of Office';
+//     const distance = getDistance(
+//       { latitude, longitude },
+//       { latitude: OFFICE_LAT, longitude: OFFICE_LNG }
+//     );
+//     const inOffice = distance <= OFFICE_RADIUS;
+//     const status = inOffice ? 'In Office' : 'Out of Office';
 
-    // Define today's date range
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+//     // Define today's date range
+//     const today = new Date();
+//     today.setHours(0, 0, 0, 0);
+//     const tomorrow = new Date(today);
+//     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    // Check if already checked in today
-    const existingAttendance = await Attendance.findOne({
-      user: req.user._id,
-      date: { $gte: today, $lt: tomorrow },
-      checkInTime: { $ne: null } // ensures check-in happened
-    });
+//     // Check if already checked in today
+//     const existingAttendance = await Attendance.findOne({
+//       user: req.user._id,
+//       date: { $gte: today, $lt: tomorrow },
+//       checkInTime: { $ne: null } // ensures check-in happened
+//     });
 
-    if (existingAttendance) {
-      return res.status(400).json({
-        success: false,
-        message: 'Already checked in today',
-        data: {
-          checkInTime: existingAttendance.checkInTime,
-          status: existingAttendance.status,
-          inOffice: existingAttendance.inOffice,
-        }
-      });
-    }
+//     if (existingAttendance) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Already checked in today',
+//         data: {
+//           checkInTime: existingAttendance.checkInTime,
+//           status: existingAttendance.status,
+//           inOffice: existingAttendance.inOffice,
+//         }
+//       });
+//     }
 
-    // Proceed with check-in
-    let attendance = await Attendance.findOne({
-      user: req.user._id,
-      date: { $gte: today, $lt: tomorrow },
-    });
+//     // Proceed with check-in
+//     let attendance = await Attendance.findOne({
+//       user: req.user._id,
+//       date: { $gte: today, $lt: tomorrow },
+//     });
 
-    if (!attendance) {
-      attendance = new Attendance({
-        user: req.user._id,
-        date: new Date(),
-        checkInTime: new Date(),
-        location: { latitude, longitude },
-        inOffice,
-        status,
-      });
-    } else {
-      // In case record exists but no check-in (edge case), allow update
-      attendance.checkInTime = new Date();
-      attendance.location = { latitude, longitude };
-      attendance.inOffice = inOffice;
-      attendance.status = status;
-    }
+//     if (!attendance) {
+//       attendance = new Attendance({
+//         user: req.user._id,
+//         date: new Date(),
+//         checkInTime: new Date(),
+//         location: { latitude, longitude },
+//         inOffice,
+//         status,
+//       });
+//     } else {
+//       // In case record exists but no check-in (edge case), allow update
+//       attendance.checkInTime = new Date();
+//       attendance.location = { latitude, longitude };
+//       attendance.inOffice = inOffice;
+//       attendance.status = status;
+//     }
 
-    await attendance.save();
+//     await attendance.save();
 
-    // Update user status
-    await User.findByIdAndUpdate(req.user._id, {
-      status,
-      statusUpdatedAt: Date.now(),
-    });
+//     // Update user status
+//     await User.findByIdAndUpdate(req.user._id, {
+//       status,
+//       statusUpdatedAt: Date.now(),
+//     });
 
-    res.status(200).json({
-      success: true,
-      message: 'Checked in successfully',
-      data: {
-        status,
-        inOffice,
-        distance: Math.round(distance),
-        checkInTime: attendance.checkInTime,
-      },
-    });
-  } catch (error) {
-    console.error('Check-in error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};// CHECK-OUT
-export const checkOut = async (req, res) => {
-  try {
-    const today = new Date().setHours(0, 0, 0, 0);
-    const attendance = await Attendance.findOne({
-      user: req.user._id,
-      date: { $gte: today, $lt: new Date(today + 24 * 60 * 60 * 1000) },
-    });
+//     res.status(200).json({
+//       success: true,
+//       message: 'Checked in successfully',
+//       data: {
+//         status,
+//         inOffice,
+//         distance: Math.round(distance),
+//         checkInTime: attendance.checkInTime,
+//       },
+//     });
+//   } catch (error) {
+//     console.error('Check-in error:', error);
+//     res.status(500).json({ success: false, message: error.message });
+//   }
+// };// CHECK-OUT
+// export const checkOut = async (req, res) => {
+//   try {
+//     const today = new Date().setHours(0, 0, 0, 0);
+//     const attendance = await Attendance.findOne({
+//       user: req.user._id,
+//       date: { $gte: today, $lt: new Date(today + 24 * 60 * 60 * 1000) },
+//     });
 
-    if (!attendance || !attendance.checkInTime) {
-      return res.status(400).json({ success: false, message: 'No check-in found' });
-    }
+//     if (!attendance || !attendance.checkInTime) {
+//       return res.status(400).json({ success: false, message: 'No check-in found' });
+//     }
 
-    if (attendance.checkOutTime) {
-      return res.status(400).json({ success: false, message: 'Already checked out' });
-    }
+//     if (attendance.checkOutTime) {
+//       return res.status(400).json({ success: false, message: 'Already checked out' });
+//     }
 
-    attendance.checkOutTime = new Date();
-    await attendance.save();
+//     attendance.checkOutTime = new Date();
+//     await attendance.save();
 
-    res.status(200).json({
-      success: true,
-      message: 'Checked out',
-      data: {
-        checkOutTime: attendance.checkOutTime,
-        duration: Math.round((attendance.checkOutTime - attendance.checkInTime) / 60000) + ' mins',
-      },
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+//     res.status(200).json({
+//       success: true,
+//       message: 'Checked out',
+//       data: {
+//         checkOutTime: attendance.checkOutTime,
+//         duration: Math.round((attendance.checkOutTime - attendance.checkInTime) / 60000) + ' mins',
+//       },
+//     });
+//   } catch (error) {
+//     res.status(500).json({ success: false, message: error.message });
+//   }
+// };
 
 // GET TEAM MEMBERS (with search & pagination)
 export const getTeam = async (req, res) => {
