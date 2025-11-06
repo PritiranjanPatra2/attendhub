@@ -22,9 +22,9 @@ router.use(isAuth);
 router.get('/me', getProfile);
 router.put('/me', upload.single('photo'), updateProfile);
 router.patch('/status', updateStatus);
-// router.post('/checkin', checkIn);
+router.post('/checkin', checkIn);
 router.get('/employee/:id', getEmployeeById);
-// router.post('/checkout', checkOut);
+router.post('/checkout', checkOut);
 router.get('/team', getTeam);
 
 
